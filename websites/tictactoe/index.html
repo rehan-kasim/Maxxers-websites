@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="A modern, polished online multiplayer Tic Tac Toe game powered by PeerJS and Tailwind CSS. Play with friends instantly via peer-to-peer connection.">
+    <title>Tic Tac Toe Online | PeerJS Multiplayer</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PeerJS CDN -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
+    <!-- Google Fonts: Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at 50% 20%, #1e1b4b 0%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .cell-hover:hover:not(.taken) {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .glow-x {
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+        }
+        .glow-o {
+            text-shadow: 0 0 20px rgba(244, 63, 94, 0.6);
+        }
+    </style>
+</head>
+<body class="text-slate-100 flex flex-col min-h-screen justify-between selection:bg-indigo-500 selection:text-white">
+
+    <!-- Header -->
+    <header class="w-full py-6 px-6 border-b border-slate-800/80 bg-slate-900/40 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-rose-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">Tic Tac Toe</h1>
+                    <p class="text-xs text-indigo-400 font-medium">Peer-to-Peer Multiplayer</p>
+                </div>
+            </div>
+            <div id="connection-status-badge" class="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-medium">
+                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse" id="status-dot"></span>
+                <span id="status-text">Disconnected</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow flex items-center justify-center p-4 sm:p-6">
+        <div class="w-full max-w-md mx-auto">
+
+            <!-- SCREEN 1: MENU -->
+            <div id="screen-menu" class="glass-panel p-6 sm:p-8 rounded-3xl shadow-2xl transition-all duration-300">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-extrabold tracking-tight mb-2">Play Together</h2>
+                    <p class="text-slate-400 text-sm">Create a game room or join a friend instantly using PeerJS.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <button onclick="createGame()" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 font-semibold shadow-lg shadow-indigo-600/30 transition-all duration-200 flex items-center justify-center space-x-2 group">
+                        <svg class="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>Create Online Room</span>
+                    </button>
+
+                    <div class="relative flex py-2 items-center">
+                        <div class="flex-grow border-t border-slate-700/60"></div>
+                        <span class="flex-shrink mx-4 text-slate-500 text-xs uppercase tracking-widest font-semibold">or join</span>
+                        <div class="flex-grow border-t border-slate-700/60"></div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label for="room-code-input" class="block text-xs font-medium text-slate-400 mb-1">Room ID</label>
+                            <input type="text" id="room-code-input" placeholder="Paste friend's room ID..." class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                        </div>
+                        <button onclick="joinGame()" class="w-full py-3.5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-semibold transition-all duration-200 flex items-center justify-center space-x-2">
+                            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+                            <span>Join Room</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="menu-error" class="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs text-center hidden"></div>
+            </div>
+
+            <!-- SCREEN 2: WAITING FOR HOST/PEER -->
+            <div id="screen-waiting" class="glass-panel p-8 rounded-3xl shadow-2xl text-center hidden">
+                <div class="inline-flex p-4 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-6 relative">
+                    <div class="absolute inset-0 rounded-full animate-ping bg-indigo-500/20"></div>
+                    <svg class="w-8 h-8 text-indigo-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                
+                <h3 class="text-xl font-bold mb-2">Waiting for opponent...</h3>
+                <p class="text-slate-400 text-sm mb-6">Share this Room ID with your friend so they can join your game.</p>
+
+                <div class="bg-slate-900/80 border border-slate-700/80 rounded-2xl p-4 mb-6 flex items-center justify-between">
+                    <span id="display-room-code" class="font-mono text-indigo-300 font-bold tracking-wider text-sm select-all">Generating...</span>
+                    <button onclick="copyRoomCode()" class="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-xl text-xs font-medium border border-indigo-500/30 transition-all flex items-center space-x-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                        <span id="copy-btn-text">Copy</span>
+                    </button>
+                </div>
+
+                <button onclick="resetToMenu()" class="text-xs text-slate-400 hover:text-white underline transition-colors">Cancel & Return to Menu</button>
+            </div>
+
+            <!-- SCREEN 3: GAME BOARD -->
+            <div id="screen-game" class="glass-panel p-6 rounded-3xl shadow-2xl hidden">
+                
+                <!-- Game Info Bar -->
+                <div class="flex items-center justify-between mb-6 bg-slate-900/60 p-3.5 rounded-2xl border border-slate-800">
+                    <div class="flex items-center space-x-3">
+                        <div id="player-badge" class="w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm bg-indigo-600 text-white shadow-md">X</div>
+                        <div>
+                            <div class="text-xs text-slate-400">You are playing as</div>
+                            <div id="player-role-text" class="text-sm font-semibold text-slate-200">Player X</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-slate-400">Turn</div>
+                        <div id="turn-indicator" class="text-sm font-bold text-indigo-400">X's Turn</div>
+                    </div>
+                </div>
+
+                <!-- Tic Tac Toe Grid (3x3) -->
+                <div class="grid grid-cols-3 gap-3 mb-6 aspect-square">
+                    <div onclick="makeMove(0)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-0"></div>
+                    <div onclick="makeMove(1)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-1"></div>
+                    <div onclick="makeMove(2)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-2"></div>
+                    
+                    <div onclick="makeMove(3)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-3"></div>
+                    <div onclick="makeMove(4)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-4"></div>
+                    <div onclick="makeMove(5)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-5"></div>
+                    
+                    <div onclick="makeMove(6)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-6"></div>
+                    <div onclick="makeMove(7)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-7"></div>
+                    <div onclick="makeMove(8)" class="cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200" id="cell-8"></div>
+                </div>
+
+                <!-- Status Banner / Rematch -->
+                <div id="game-status-banner" class="text-center p-3 rounded-xl bg-slate-900/80 border border-slate-800 mb-4 hidden">
+                    <span id="game-status-message" class="text-sm font-semibold">Game Over</span>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button id="rematch-btn" onclick="requestRematch()" class="flex-1 py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-semibold text-sm transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Play Again
+                    </button>
+                    <button onclick="resetToMenu()" class="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 font-semibold text-sm transition-all">
+                        Exit Room
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full py-4 text-center text-xs text-slate-500 border-t border-slate-800/80 bg-slate-900/40">
+        <p>Built with Tailwind CSS & PeerJS. Fully Peer-to-Peer.</p>
+    </footer>
+
+    <!-- Application Script -->
+    <script>
+        // Game State Variables
+        let peer = null;
+        let conn = null;
+        let myRole = null; // 'X' or 'O'
+        let currentTurn = 'X'; // 'X' or 'O'
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let isGameActive = false;
+        let isHost = false;
+        let rematchRequested = false;
+        let opponentRematchRequested = false;
+
+        const winningCombinations = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 4, 8], [2, 4, 6]            // Diagonals
+        ];
+
+        // UI Helpers
+        function showScreen(screenId) {
+            ['screen-menu', 'screen-waiting', 'screen-game'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function updateConnectionStatus(status, text) {
+            const dot = document.getElementById('status-dot');
+            const label = document.getElementById('status-text');
+            
+            dot.className = "w-2 h-2 rounded-full";
+            if (status === 'connected') {
+                dot.classList.add('bg-emerald-500');
+            } else if (status === 'connecting') {
+                dot.classList.add('bg-amber-500', 'animate-pulse');
+            } else {
+                dot.classList.add('bg-rose-500');
+            }
+            label.textContent = text;
+        }
+
+        function showError(msg) {
+            const errBox = document.getElementById('menu-error');
+            errBox.textContent = msg;
+            errBox.classList.remove('hidden');
+            setTimeout(() => {
+                errBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        // PeerJS Setup & Actions
+        function initPeer(onOpenCallback) {
+            if (peer) {
+                try { peer.destroy(); } catch(e) {}
+            }
+            updateConnectionStatus('connecting', 'Connecting to server...');
+            
+            // Using public PeerJS cloud server
+            peer = new Peer();
+
+            peer.on('open', (id) => {
+                updateConnectionStatus('connected', 'Online');
+                if (onOpenCallback) onOpenCallback(id);
+            });
+
+            peer.on('error', (err) => {
+                console.error(err);
+                updateConnectionStatus('error', 'Connection Error');
+                showError('Peer connection error: ' + err.type);
+            });
+
+            peer.on('disconnected', () => {
+                updateConnectionStatus('connecting', 'Reconnecting...');
+                peer.reconnect();
+            });
+        }
+
+        function createGame() {
+            initPeer((id) => {
+                isHost = true;
+                myRole = 'X';
+                document.getElementById('display-room-code').textContent = id;
+                showScreen('screen-waiting');
+
+                peer.on('connection', (connection) => {
+                    conn = connection;
+                    setupConnectionHandlers();
+                    // Host starts the game once guest connects
+                    startGameSession();
+                });
+            });
+        }
+
+        function joinGame() {
+            const code = document.getElementById('room-code-input').value.trim();
+            if (!code) {
+                showError('Please enter a valid Room ID.');
+                return;
+            }
+
+            initPeer((id) => {
+                isHost = false;
+                myRole = 'O';
+                updateConnectionStatus('connecting', 'Connecting to room...');
+                
+                conn = peer.connect(code);
+                setupConnectionHandlers();
+            });
+        }
+
+        function copyRoomCode() {
+            const code = document.getElementById('display-room-code').textContent;
+            navigator.clipboard.writeText(code);
+            const btnText = document.getElementById('copy-btn-text');
+            btnText.textContent = 'Copied!';
+            setTimeout(() => { btnText.textContent = 'Copy'; }, 2000);
+        }
+
+        function setupConnectionHandlers() {
+            conn.on('open', () => {
+                updateConnectionStatus('connected', 'In Game');
+                if (!isHost) {
+                    // Guest joined successfully
+                    startGameSession();
+                }
+            });
+
+            conn.on('data', (data) => {
+                handleIncomingData(data);
+            });
+
+            conn.on('close', () => {
+                updateConnectionStatus('disconnected', 'Opponent Left');
+                if (isGameActive) {
+                    endGameByDisconnect();
+                }
+            });
+        }
+
+        function startGameSession() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            currentTurn = 'X';
+            isGameActive = true;
+            rematchRequested = false;
+            opponentRematchRequested = false;
+
+            showScreen('screen-game');
+            
+            // Update UI role badges
+            const badge = document.getElementById('player-badge');
+            badge.textContent = myRole;
+            badge.className = `w-8 h-8 rounded-xl flex items-center justify-center font-bold text-sm shadow-md ${myRole === 'X' ? 'bg-sky-500 text-slate-950 glow-x' : 'bg-rose-500 text-slate-950 glow-o'}`;
+            document.getElementById('player-role-text').textContent = `Player ${myRole}`;
+            
+            const rematchBtn = document.getElementById('rematch-btn');
+            rematchBtn.textContent = 'Play Again';
+            rematchBtn.disabled = false;
+
+            document.getElementById('game-status-banner').classList.add('hidden');
+            renderBoard();
+            updateTurnIndicator();
+        }
+
+        // Gameplay Logic
+        function makeMove(index) {
+            if (!isGameActive) return;
+            if (currentTurn !== myRole) return;
+            if (board[index] !== '') return;
+
+            // Apply move locally
+            board[index] = myRole;
+            renderBoard();
+
+            // Send move to peer
+            conn.send({
+                type: 'move',
+                index: index,
+                player: myRole
+            });
+
+            checkGameResult();
+        }
+
+        function handleIncomingData(data) {
+            if (data.type === 'move') {
+                board[data.index] = data.player;
+                renderBoard();
+                checkGameResult();
+            } else if (data.type === 'rematch') {
+                opponentRematchRequested = true;
+                if (rematchRequested) {
+                    startGameSession();
+                } else {
+                    document.getElementById('game-status-message').textContent = "Opponent wants a rematch!";
+                }
+            }
+        }
+
+        function checkGameResult() {
+            let roundWon = false;
+            let winningCombo = [];
+
+            for (let i = 0; i < winningCombinations.length; i++) {
+                const [a, b, c] = winningCombinations[i];
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    roundWon = true;
+                    winningCombo = [a, b, c];
+                    break;
+                }
+            }
+
+            if (roundWon) {
+                isGameActive = false;
+                const winner = board[winningCombo[0]];
+                highlightWinningCells(winningCombo);
+                showGameEndMessage(winner === myRole ? 'You Won! 🎉' : `Player ${winner} Won!`);
+                return;
+            }
+
+            if (!board.includes('')) {
+                isGameActive = false;
+                showGameEndMessage("It's a Draw! 🤝");
+                return;
+            }
+
+            // Switch turn
+            currentTurn = currentTurn === 'X' ? 'O' : 'X';
+            updateTurnIndicator();
+        }
+
+        function highlightWinningCells(combo) {
+            combo.forEach(idx => {
+                const cell = document.getElementById(`cell-${idx}`);
+                cell.classList.add('bg-indigo-500/20', 'border-indigo-500/50');
+            });
+        }
+
+        function showGameEndMessage(msg) {
+            const banner = document.getElementById('game-status-banner');
+            const msgEl = document.getElementById('game-status-message');
+            msgEl.textContent = msg;
+            banner.classList.remove('hidden');
+        }
+
+        function endGameByDisconnect() {
+            isGameActive = false;
+            showGameEndMessage("Opponent disconnected.");
+            document.getElementById('rematch-btn').disabled = true;
+        }
+
+        function updateTurnIndicator() {
+            const indicator = document.getElementById('turn-indicator');
+            if (currentTurn === myRole) {
+                indicator.textContent = "Your Turn";
+                indicator.className = "text-sm font-bold text-emerald-400";
+            } else {
+                indicator.textContent = `Opponent's Turn (${currentTurn})`;
+                indicator.className = "text-sm font-bold text-amber-400";
+            }
+        }
+
+        function renderBoard() {
+            for (let i = 0; i < 9; i++) {
+                const cell = document.getElementById(`cell-${i}`);
+                cell.innerHTML = '';
+                cell.className = "cell-hover bg-slate-900/50 border border-slate-800 rounded-2xl flex items-center justify-center text-5xl font-extrabold cursor-pointer transition-all duration-200";
+                
+                if (board[i] !== '') {
+                    cell.classList.add('taken');
+                    const span = document.createElement('span');
+                    span.textContent = board[i];
+                    span.className = `animate-pop ${board[i] === 'X' ? 'text-sky-400 glow-x' : 'text-rose-500 glow-o'}`;
+                    cell.appendChild(span);
+                }
+            }
+        }
+
+        function requestRematch() {
+            rematchRequested = true;
+            const btn = document.getElementById('rematch-btn');
+            btn.disabled = true;
+            
+            if (opponentRematchRequested) {
+                startGameSession();
+            } else {
+                btn.textContent = 'Waiting for opponent...';
+                conn.send({ type: 'rematch' });
+            }
+        }
+
+        function resetToMenu() {
+            if (conn) conn.close();
+            if (peer) peer.destroy();
+            isGameActive = false;
+            showScreen('screen-menu');
+            document.getElementById('room-code-input').value = '';
+            updateConnectionStatus('disconnected', 'Disconnected');
+        }
+    </script>
+</body>
+</html>
