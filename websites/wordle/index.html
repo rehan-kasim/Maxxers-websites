@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wordle Pro — Words, Elevated.</title>
+    <meta name="description" content="Experience Wordle with Apple-inspired minimalism and dynamic animations powered by GSAP and Tailwind CSS.">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', 'sans-serif'],
+                    },
+                    colors: {
+                        apple: {
+                            bg: '#000000',
+                            card: '#161617',
+                            cardHover: '#1d1d1f',
+                            border: '#333336',
+                            textMuted: '#86868b',
+                            accent: '#2997ff',
+                            correct: '#34c759',
+                            present: '#ff9f0a',
+                            absent: '#3a3a3c'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- GSAP & ScrollTrigger CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #000000;
+            color: #f5f5f7;
+            overflow-x: hidden;
+        }
+        .glass-nav {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .glass-card {
+            background: rgba(22, 22, 23, 0.7);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333336;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .tile-3d {
+            transform-style: preserve-3d;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-apple-accent selection:text-white">
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 left-0 right-0 z-50 glass-nav border-b border-white/10 transition-all duration-300" id="navbar">
+        <div class="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between text-xs font-medium text-apple-textMuted">
+            <a href="#" class="text-white font-semibold flex items-center gap-1.5 hover:text-apple-accent transition-colors">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-apple-accent"></i>
+                <span>Wordle Pro</span>
+            </a>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#overview" class="hover:text-white transition-colors">Overview</a>
+                <a href="#game" class="hover:text-white transition-colors">Play</a>
+                <a href="#features" class="hover:text-white transition-colors">Ecosystem</a>
+                <a href="#specs" class="hover:text-white transition-colors">Tech Specs</a>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button onclick="openModal('shareModal')" class="hover:text-white transition-colors flex items-center gap-1">
+                    <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+                    <span>Share</span>
+                </button>
+                <a href="#game" class="bg-white text-black px-3 py-1 rounded-full font-normal hover:bg-opacity-90 transition-all">Play Now</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden text-center" id="overview">
+        <div class="max-w-4xl mx-auto px-6">
+            <span class="hero-tag text-xs font-semibold tracking-widest uppercase text-apple-accent mb-3 inline-block">Introducing Wordle Pro</span>
+            <h1 class="hero-title text-5xl md:text-8xl font-bold tracking-tight text-white mb-6">
+                Words, <br class="hidden md:block"/><span class="bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">Elevated.</span>
+            </h1>
+            <p class="hero-sub text-lg md:text-2xl text-apple-textMuted max-w-2xl mx-auto font-normal mb-10">
+                Redefined with spatial acoustics, tactile feedback design, and a stunning fluid interface engineered for true language enthusiasts.
+            </p>
+            <div class="hero-cta flex flex-col sm:flex-row items-center justify-center gap-4">
+                <a href="#game" class="w-full sm:w-auto bg-apple-accent text-white px-6 py-3 rounded-full font-medium hover:bg-blue-600 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20">
+                    <span>Start Playing</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </a>
+                <a href="#features" class="w-full sm:w-auto glass-card text-white px-6 py-3 rounded-full font-medium hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                    <span>Explore Features</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Hero Graphic (Simulated 3D Wordle Board showcase) -->
+        <div class="hero-board mt-16 max-w-3xl mx-auto px-6 perspective-1000">
+            <div class="grid grid-cols-5 gap-3 max-w-md mx-auto p-4 glass-card rounded-3xl shadow-2xl border border-white/10">
+                <div class="h-14 sm:h-16 rounded-xl bg-apple-correct text-white font-bold text-2xl flex items-center justify-center shadow-md">A</div>
+                <div class="h-14 sm:h-16 rounded-xl bg-apple-correct text-white font-bold text-2xl flex items-center justify-center shadow-md">P</div>
+                <div class="h-14 sm:h-16 rounded-xl bg-apple-correct text-white font-bold text-2xl flex items-center justify-center shadow-md">P</div>
+                <div class="h-14 sm:h-16 rounded-xl bg-apple-correct text-white font-bold text-2xl flex items-center justify-center shadow-md">L</div>
+                <div class="h-14 sm:h-16 rounded-xl bg-apple-correct text-white font-bold text-2xl flex items-center justify-center shadow-md">E</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Interactive Game Section (Apple & Amazon UI fusion) -->
+    <section id="game" class="py-24 bg-[#0a0a0c] border-t border-b border-apple-border relative">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-5xl font-bold tracking-tight text-white mb-4">Daily Challenge</h2>
+                <p class="text-apple-textMuted text-base md:text-lg">Guess the hidden 5-letter word in 6 tries. Tap keys or use your hardware keyboard.</p>
+            </div>
+
+            <!-- Game Container -->
+            <div id="game-container" class="max-w-md mx-auto glass-card p-6 md:p-8 rounded-3xl shadow-2xl relative">
+                <!-- Status notifications -->
+                <div id="game-message" class="absolute -top-12 left-1/2 -translate-x-1/2 bg-white text-black px-4 py-1.5 rounded-full text-xs font-semibold opacity-0 pointer-events-none transition-opacity duration-300 shadow-xl z-20"></div>
+
+                <!-- Board Grid (6 rows x 5 cols) -->
+                <div id="board" class="grid grid-rows-6 gap-2 mb-8">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <!-- Virtual Keyboard -->
+                <div id="keyboard" class="space-y-2">
+                    <div class="flex justify-center gap-1.5" id="row-1"></div>
+                    <div class="flex justify-center gap-1.5" id="row-2"></div>
+                    <div class="flex justify-center gap-1.5" id="row-3"></div>
+                </div>
+
+                <!-- Game Over Overlay / Controls -->
+                <div id="game-controls" class="mt-6 text-center hidden">
+                    <button onclick="resetGame()" class="bg-white text-black font-medium px-6 py-2.5 rounded-full hover:bg-opacity-90 transition-all text-sm flex items-center gap-2 mx-auto">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                        <span>Play Another Round</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Bento Grid Features (Apple Design Language) -->
+    <section id="features" class="py-32 max-w-6xl mx-auto px-6">
+        <div class="text-center max-w-3xl mx-auto mb-20">
+            <h2 class="text-3xl md:text-6xl font-bold tracking-tight text-white mb-6">Designed to inspire. Engineered to perform.</h2>
+            <p class="text-apple-textMuted text-lg">Every detail has been meticulously crafted to elevate your daily puzzle ritual.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Bento Card 1 -->
+            <div class="glass-card p-8 rounded-3xl flex flex-col justify-between h-[400px] relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="relative z-10">
+                    <span class="text-xs font-semibold text-apple-accent uppercase tracking-wider">Tactile Feedback</span>
+                    <h3 class="text-2xl font-bold text-white mt-2">Haptic-grade Transitions.</h3>
+                </div>
+                <div class="relative z-10 flex items-center justify-center">
+                    <div class="w-24 h-24 rounded-2xl bg-gradient-to-tr from-apple-correct to-blue-500 flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-transform duration-500">
+                        <i data-lucide="zap" class="w-10 h-10 text-white"></i>
+                    </div>
+                </div>
+                <p class="relative z-10 text-apple-textMuted text-sm">Fluid 60fps animations powered by GSAP for ultimate mechanical satisfaction.</p>
+            </div>
+
+            <!-- Bento Card 2 -->
+            <div class="glass-card p-8 rounded-3xl flex flex-col justify-between h-[400px] relative overflow-hidden group md:col-span-2">
+                <div class="absolute inset-0 bg-gradient-to-r from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div class="relative z-10">
+                    <span class="text-xs font-semibold text-purple-400 uppercase tracking-wider">Cloud Synchronized</span>
+                    <h3 class="text-2xl font-bold text-white mt-2">Amazon-Scale Reliability & Speed.</h3>
+                </div>
+                <div class="relative z-10 my-auto py-4">
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-black/40 p-4 rounded-2xl border border-white/5">
+                            <div class="text-2xl font-bold text-white">99.99%</div>
+                            <div class="text-xs text-apple-textMuted mt-1">Uptime</div>
+                        </div>
+                        <div class="bg-black/40 p-4 rounded-2xl border border-white/5">
+                            <div class="text-2xl font-bold text-white">&lt;5ms</div>
+                            <div class="text-xs text-apple-textMuted mt-1">Latency</div>
+                        </div>
+                        <div class="bg-black/40 p-4 rounded-2xl border border-white/5">
+                            <div class="text-2xl font-bold text-white">256-bit</div>
+                            <div class="text-xs text-apple-textMuted mt-1">Encryption</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="relative z-10 text-apple-textMuted text-sm">Your statistics and streaks are securely saved across all your devices instantly.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tech Specs / Footer Section -->
+    <footer id="specs" class="bg-[#050507] border-t border-apple-border py-20 text-apple-textMuted text-xs">
+        <div class="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
+            <div>
+                <h4 class="text-white font-semibold mb-4 text-sm">Explore Wordle</h4>
+                <ul class="space-y-2.5">
+                    <li><a href="#game" class="hover:text-white transition-colors">Play Daily</a></li>
+                    <li><a href="#features" class="hover:text-white transition-colors">Ecosystem</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Word Archive</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Leaderboards</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-4 text-sm">Account & Stats</h4>
+                <ul class="space-y-2.5">
+                    <li><a href="#" class="hover:text-white transition-colors">Manage Profile</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Cloud Sync</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Streak Rewards</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-4 text-sm">Values</h4>
+                <ul class="space-y-2.5">
+                    <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Accessibility</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Environmental Impact</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-semibold mb-4 text-sm">About</h4>
+                <ul class="space-y-2.5">
+                    <li><a href="#" class="hover:text-white transition-colors">Newsroom</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Careers</a></li>
+                    <li><a href="#" class="hover:text-white transition-colors">Investors</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="max-w-5xl mx-auto px-6 pt-8 border-t border-apple-border flex flex-col md:flex-row items-center justify-between gap-4">
+            <p>Copyright © 2025 Wordle Pro Inc. All rights reserved. Built with GSAP & Tailwind.</p>
+            <div class="flex space-x-6">
+                <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
+                <a href="#" class="hover:text-white transition-colors">Terms of Use</a>
+                <a href="#" class="hover:text-white transition-colors">Sales Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md hidden">
+        <div class="glass-card p-8 rounded-3xl max-w-sm w-full mx-6 text-center relative">
+            <button onclick="closeModal('shareModal')" class="absolute top-4 right-4 text-apple-textMuted hover:text-white">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div class="w-12 h-12 rounded-2xl bg-apple-accent/20 text-apple-accent flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="share-2" class="w-6 h-6"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Share Wordle Pro</h3>
+            <p class="text-apple-textMuted text-xs mb-6">Invite friends to experience the pinnacle of word puzzle design.</p>
+            <div class="flex items-center justify-center gap-3">
+                <button onclick="copyShareLink()" class="w-full bg-white text-black py-2.5 rounded-full text-xs font-semibold hover:bg-opacity-90 transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span>Copy Link</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts: Game Logic & GSAP Animations -->
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // GSAP Animations on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            const tl = gsap.timeline({defaults: {ease: 'power3.out'}};);
+            
+            tl.from('#navbar', { y: -50, opacity: 0, duration: 1 })
+              .from('.hero-tag', { y: 20, opacity: 0, duration: 0.8 }, '-=0.6')
+              .from('.hero-title', { y: 30, opacity: 0, duration: 1 }, '-=0.6')
+              .from('.hero-sub', { y: 30, opacity: 0, duration: 1 }, '-=0.8')
+              .from('.hero-cta', { y: 20, opacity: 0, duration: 0.8 }, '-=0.8')
+              .from('.hero-board', { scale: 0.9, opacity: 0, duration: 1.2 }, '-=0.8');
+
+            // ScrollTrigger Animations
+            gsap.registerPlugin(ScrollTrigger);
+            gsap.utils.toArray('.glass-card').forEach(card => {
+                gsap.from(card, {
+                    scrollTrigger: {
+                        trigger: card,
+                        start: 'top 85%',
+                        toggleActions: 'play none none none'
+                    },
+                    y: 40,
+                    opacity: 0,
+                    duration: 1,
+                    ease: 'power3.out'
+                });
+            });
+        });
+
+        // --- WORDLE GAME LOGIC ---
+        const WORDS = [
+            "APPLE", "CLOUD", "SMART", "SWIFT", "AUDIO", 
+            "VIDEO", "LIGHT", "SPACE", "SHARP", "POWER",
+            "FRESH", "GRAND", "PLANT", "SOLAR", "TIGER"
+        ];
+        
+        let targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+        let currentGuess = "";
+        let guesses = [];
+        let isGameOver = false;
+
+        const boardEl = document.getElementById('board');
+        const keyboardEl = document.getElementById('keyboard');
+        const messageEl = document.getElementById('game-message');
+        const controlsEl = document.getElementById('game-controls');
+
+        const ROWS = 6;
+        const COLS = 5;
+
+        const KEYS = [
+            ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+            ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+            ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "BACK"]
+        ];
+
+        function initBoard() {
+            boardEl.innerHTML = '';
+            for (let r = 0; r < ROWS; r++) {
+                const row = document.createElement('div');
+                row.className = 'grid grid-cols-5 gap-2';
+                row.id = `row-${r}`;
+                for (let c = 0; c < COLS; c++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'h-12 sm:h-14 rounded-xl bg-apple-card border border-apple-border flex items-center justify-center font-bold text-xl text-white transition-all duration-300 tile-3d';
+                    tile.id = `tile-${r}-${c}`;
+                    row.appendChild(tile);
+                }
+                boardEl.appendChild(row);
+            }
+        }
+
+        function initKeyboard() {
+            KEYS.forEach((row, rowIndex) => {
+                const rowEl = document.getElementById(`row-${rowIndex + 1}`);
+                rowEl.innerHTML = '';
+                row.forEach(key => {
+                    const btn = document.createElement('button');
+                    btn.textContent = key;
+                    btn.className = `h-12 rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center transition-all bg-apple-card hover:bg-apple-cardHover text-white border border-apple-border ${key === 'ENTER' || key === 'BACK' ? 'px-3 sm:px-5 flex-1 text-[10px]' : 'flex-1'}`;
+                    btn.id = `key-${key}`;
+                    btn.onclick = () => handleKeyPress(key);
+                    rowEl.appendChild(btn);
+                });
+            });
+        }
+
+        function handleKeyPress(key) {
+            if (isGameOver) return;
+
+            if (key === 'ENTER') {
+                submitGuess();
+            } else if (key === 'BACK') {
+                if (currentGuess.length > 0) {
+                    currentGuess = currentGuess.slice(0, -1);
+                    updateBoard();
+                }
+            } else {
+                if (currentGuess.length < COLS) {
+                    currentGuess += key;
+                    updateBoard();
+                    // Subtle pop animation
+                    gsap.fromTo(`#tile-${guesses.length}-${currentGuess.length - 1}`, 
+                        { scale: 0.9 }, 
+                        { scale: 1, duration: 0.15, ease: 'back.out(2)' }
+                    );
+                }
+            }
+        }
+
+        function updateBoard() {
+            const currentRow = guesses.length;
+            for (let c = 0; c < COLS; c++) {
+                const tile = document.getElementById(`tile-${currentRow}-${c}`);
+                if (c < currentGuess.length) {
+                    tile.textContent = currentGuess[c];
+                    tile.classList.add('border-white/30');
+                } else {
+                    tile.textContent = '';
+                    tile.classList.remove('border-white/30');
+                }
+            }
+        }
+
+        function submitGuess() {
+            if (currentGuess.length < COLS) {
+                showMessage("Not enough letters");
+                shakeRow(guesses.length);
+                return;
+            }
+
+            const currentRow = guesses.length;
+            
+            // Flip Animation & Evaluation
+            let letterCount = {};
+            for (let char of targetWord) {
+                letterCount[char] = (letterCount[char] || 0) + 1;
+            }
+
+            let statuses = Array(COLS).fill('absent');
+
+            // First pass for correct (greens)
+            for (let c = 0; c < COLS; c++) {
+                if (currentGuess[c] === targetWord[c]) {
+                    statuses[c] = 'correct';
+                    letterCount[currentGuess[c]]--;
+                }
+            }
+
+            // Second pass for present (yellows)
+            for (let c = 0; c < COLS; c++) {
+                if (statuses[c] !== 'correct') {
+                    let char = currentGuess[c];
+                    if (letterCount[char] && letterCount[char] > 0) {
+                        statuses[c] = 'present';
+                        letterCount[char]--;
+                    }
+                }
+            }
+
+            // Animate tile flips
+            for (let c = 0; c < COLS; c++) {
+                const tile = document.getElementById(`tile-${currentRow}-${c}`);
+                gsap.to(tile, {
+                    rotationX: 90,
+                    duration: 0.25,
+                    delay: c * 0.1,
+                    onComplete: () => {
+                        tile.textContent = currentGuess[c];
+                        if (statuses[c] === 'correct') {
+                            tile.className = 'h-12 sm:h-14 rounded-xl bg-apple-correct text-white font-bold text-xl flex items-center justify-center shadow-lg';
+                        } else if (statuses[c] === 'present') {
+                            tile.className = 'h-12 sm:h-14 rounded-xl bg-apple-present text-white font-bold text-xl flex items-center justify-center shadow-lg';
+                        } else {
+                            tile.className = 'h-12 sm:h-14 rounded-xl bg-apple-absent text-white font-bold text-xl flex items-center justify-center shadow-lg';
+                        }
+                        updateKeyColor(currentGuess[c], statuses[c]);
+                        gsap.to(tile, { rotationX: 0, duration: 0.25 });
+                    }
+                });
+            }
+
+            guesses.push(currentGuess);
+
+            if (currentGuess === targetWord) {
+                isGameOver = true;
+                setTimeout(() => {
+                    showMessage("Magnificent! You nailed it.");
+                    controlsEl.classList.remove('hidden');
+                }, 800);
+                return;
+            }
+
+            if (guesses.length === ROWS) {
+                isGameOver = true;
+                setTimeout(() => {
+                    showMessage(`Game Over! The word was: ${targetWord}`);
+                    controlsEl.classList.remove('hidden');
+                }, 800);
+                return;
+            }
+
+            currentGuess = "";
+        }
+
+        function updateKeyColor(letter, status) {
+            const keyEl = document.getElementById(`key-${letter}`);
+            if (!keyEl) return;
+            
+            if (status === 'correct') {
+                keyEl.className = keyEl.className.replace(/bg-apple-card|bg-apple-absent|bg-apple-present/, '') + ' bg-apple-correct text-white';
+            } else if (status === 'present' && !keyEl.classList.contains('bg-apple-correct')) {
+                keyEl.className = keyEl.className.replace(/bg-apple-card|bg-apple-absent/, '') + ' bg-apple-present text-white';
+            } else if (status === 'absent' && !keyEl.classList.contains('bg-apple-correct') && !keyEl.classList.contains('bg-apple-present')) {
+                keyEl.className = keyEl.className.replace(/bg-apple-card/, '') + ' bg-apple-absent text-white opacity-60';
+            }
+        }
+
+        function shakeRow(rowIndex) {
+            gsap.fromTo(`#row-${rowIndex}`, { x: -10 }, { x: 10, duration: 0.08, repeat: 3, yoyo: true, ease: 'power1.inOut' });
+        }
+
+        function showMessage(text) {
+            messageEl.textContent = text;
+            gsap.fromTo(messageEl, { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.3 });
+            setTimeout(() => {
+                gsap.to(messageEl, { opacity: 0, y: -10, duration: 0.3 });
+            }, 2500);
+        }
+
+        function resetGame() {
+            targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+            currentGuess = "";
+            guesses = [];
+            isGameOver = false;
+            controlsEl.classList.add('hidden');
+            initBoard();
+            initKeyboard();
+        }
+
+        // Hardware keyboard listener
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                handleKeyPress('ENTER');
+            } else if (e.key === 'Backspace') {
+                handleKeyPress('BACK');
+            } else {
+                const letter = e.key.toUpperCase();
+                if (/^[A-Z]$/.test(letter)) {
+                    handleKeyPress(letter);
+                }
+            }
+        });
+
+        // Modal Helpers
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            gsap.fromTo(`#${id} > div`, { scale: 0.9, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.3, ease: 'back.out(1.5)' });
+        }
+
+        function closeModal(id) {
+            gsap.to(`#${id} > div`, { scale: 0.9, opacity: 0, duration: 0.2, onComplete: () => {
+                document.getElementById(id).classList.add('hidden');
+            }});
+        }
+
+        function copyShareLink() {
+            navigator.clipboard.writeText(window.location.href);
+            showMessage("Link copied to clipboard!");
+            closeModal('shareModal');
+        }
+
+        // Initialize game on load
+        initBoard();
+        initKeyboard();
+    </script>
+</body>
+</html>
